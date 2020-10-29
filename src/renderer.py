@@ -1,11 +1,11 @@
 from src.board import ChessBoard, ChessPieces
 import pyglet
-from pyglet.shapes import Rectangle
-from os import listdir
+from pyglet.shapes import Rectangle, Circle
 
 class Renderer(pyglet.window.Window):
     def __init__(self, x=0, y=0, width=800, height=800):
         super(Renderer, self).__init__(width, height)
+        # Set up the location and size of our game board
         self.board_x = x
         self.board_y = y
         self.board_width = width
@@ -28,9 +28,12 @@ class Renderer(pyglet.window.Window):
         # Start the application
 
         # Create the chess board object that will store the game information
-        self.board = ChessBoard()
+        self.chess_board = ChessBoard()
+        self.selected_piece_moves_list = []
+        self.selected_piece_moves = pyglet.graphics.Batch()
+        self.selected_piece_offset = 0, 0
         self.selected_piece = None
-
+        self.selected_sprite = None
 
         # Create our batch to draw our piece sprites from and a list to reference the piece sprites
         self.pieces_batch = pyglet.graphics.Batch()
@@ -63,22 +66,17 @@ class Renderer(pyglet.window.Window):
         # CLear the list of sprites
         self.piece_sprites = []
         # Iterate through the chess board
-        for rank in range(len(self.board.piece_board)):
-            for file in range(len(self.board.piece_board)):
-                color, piece = self.board.check_square(rank, file)
-                # If there is a piece at the square we are looking at
-                if (color, piece) != (0,0):
-                    # Create a new sprite with its corresponding piece image from the image dictionary
-                    piece_sprite = pyglet.sprite.Sprite(
-                        self.image_dict[(color, piece)],
-                        x = self.board_x + (file * self.tile_width),
-                        y = self.board_y + (rank * self.tile_height),
-                        batch=self.pieces_batch
-                    )
-                    # Scale the piece to the appropriate size
-                    piece_sprite.scale = self.piece_scale
-                    # Add it to the global list of piece sprites so we can reference it later
-                    self.piece_sprites.append(piece_sprite)
+        for piece in self.chess_board.get_all_pieces():
+            piece_sprite = pyglet.sprite.Sprite(
+                self.image_dict[(piece.color, piece.piece_id)],
+                x=self.board_x + (piece.file * self.tile_width),
+                y=self.board_y + (piece.rank * self.tile_height),
+                batch=self.pieces_batch
+            )
+            # Scale the piece to the appropriate size
+            piece_sprite.scale = self.piece_scale
+            # Add it to the global list of piece sprites so we can reference it later
+            self.piece_sprites.append(piece_sprite)
 
     def render_tiles(self):
         light_square = (0, 122, 4)
@@ -107,12 +105,49 @@ class Renderer(pyglet.window.Window):
                     return sprite, rank, file
         return None, rank, file
 
-    def on_draw(self):
-        self.clear()
-        self.tile_batch.draw()
-        self.pieces_batch.draw()
+    def render_selected_piece_moves(self):
+        self.selected_piece_moves_list = []
+        possible_moves = self.selected_piece.get_possible_moves()
+        print(possible_moves)
+        for move in possible_moves:
+            rank, file = move
+            if self.chess_board.check_square(rank, file) is None:
+                circ = Circle(
+                    x=self.board_x + (file * self.tile_width) + (self.tile_width * 0.5),
+                    y=self.board_y + (rank * self.tile_height) + (self.tile_height * 0.5),
+                    radius=self.tile_width * .25,
+                    color=(100,100,100),
+                    batch=self.selected_piece_moves
+                )
+                self.selected_piece_moves_list.append(circ)
 
     def on_mouse_press(self, x, y, button, modifiers):
         sprite, rank, file = self.get_clicked_piece(x, y)
-        self.selected_piece = sprite
-        print(rank, file)
+        self.selected_sprite = sprite
+        self.selected_piece = self.chess_board.check_square(rank, file)
+
+        # Figure out how far to offset the piece sprite from the mouse, so that it aligns with where the player
+        # originally clicked the piece
+        if self.selected_piece is not None:
+            x = x - self.selected_sprite.x
+            y = y - self.selected_sprite.y
+            self.selected_piece_offset = x, y
+            self.render_selected_piece_moves()
+
+    def on_mouse_drag(self, x, y, dx, dy, buttons, modifiers):
+        if self.selected_piece is not None:
+             self.selected_sprite.update(x=x - self.selected_piece_offset[0],
+                                         y=y - self.selected_piece_offset[1])
+
+    def on_mouse_release(self, x, y, button, modifiers):
+        if self.selected_piece is not None:
+            self.selected_sprite.update(
+                x=self.board_x + (self.selected_piece.file * self.tile_width),
+                y=self.board_y + (self.selected_piece.rank * self.tile_height)
+            )
+
+    def on_draw(self):
+        self.clear()
+        self.tile_batch.draw()
+        self.selected_piece_moves.draw()
+        self.pieces_batch.draw()
