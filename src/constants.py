@@ -10,7 +10,7 @@ QUEEN = 5
 KING = 6
 
 WHITE = 1
-BLACK = 2
+BLACK = 0
 image_dict = {}
 
 def initialize():

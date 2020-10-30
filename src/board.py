@@ -5,8 +5,7 @@ class ChessBoard:
     def __init__(self, board=None):
         self.player_turn = src.constants.WHITE
         self.pieces = []
-        self.white_captured_pieces = []
-        self.black_captured_pieces = []
+        self.captured_pieces = []
         # If
         if board is None:
             self.clear_board()
@@ -27,16 +26,21 @@ class ChessBoard:
             self.pieces.append(Pawn(6, i, src.constants.BLACK))
 
     def check_square(self, rank, file):
+        # Search thru the piece list and find the piece with the same rank and file
         for piece in self.pieces:
             if piece.rank == rank and piece.file == file:
                 return piece
 
     def move(self, piece, move):
+        # Swap which player's turn it is to the opposite player
         self.player_turn = not self.player_turn
+        # Unpack the move and see what is in the destination square
         rank, file = move
+        dest_piece = self.check_square(rank, file)
+        # If there is a piece in the destination square, remove the piece and add it to the list of captured pieces
+        if dest_piece is not None:
+            self.captured_pieces.append(dest_piece)
+            self.pieces.remove(dest_piece)
+        # Set the piece's new location
         piece.rank = rank
         piece.file = file
-
-    def print_board(self):
-        print(self.board)
-

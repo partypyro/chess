@@ -55,9 +55,9 @@ class ChessBoardRenderer:
         for rank in range(9):
             for file in range(9):
                 # Generate a tile
+                x, y = self.rank_file_to_xy(rank, file)
                 rect = Rectangle(
-                    x=self.board_x + (file * self.tile_width),
-                    y=self.board_y + (rank * self.tile_height),
+                    x=x, y=y,
                     width=self.tile_width, height=self.tile_height,
                     # Use alternating_count to keep track of tile colorx
                     color=dark_square if alternating_count % 2 == 0 else light_square,
@@ -71,12 +71,9 @@ class ChessBoardRenderer:
         self.piece_sprites = []
         # Iterate through all pieces on the board and couple a sprite with each piece
         for piece in self.board.pieces:
+            x, y = self.rank_file_to_xy(piece.rank, piece.file)
             image = src.constants.get_image(piece)
-            piece_sprite = Sprite(image,
-                x = self.board_x + (piece.file * self.tile_width),
-                y = self.board_y + (piece.rank * self.tile_height),
-                batch = self.pieces_batch
-            )
+            piece_sprite = Sprite(image, x=x, y=y, batch = self.pieces_batch)
             piece_sprite.scale = self.tile_width / image.width
             self.piece_sprites.append(piece_sprite)
 
@@ -89,6 +86,7 @@ class ChessBoardRenderer:
             for move in legal_moves:
                 rank, file = move
                 square = self.board.check_square(rank, file)
+                # Center the xy-coords in the center of the tile
                 if square is None:
                     circ = Circle(
                         x=self.board_x + (file * self.tile_width) + (self.tile_width * 0.5),
@@ -115,39 +113,56 @@ class ChessBoardRenderer:
 
     # Based on the xy coords, get the piece/sprite at that location
     def select_piece_at(self, x, y):
-        self.selected_sprite, self.selected_piece = self.find_piece_at(x, y)
+        sprite, piece = self.find_piece_at(x, y)
+        if piece is not None:
+            if piece.color == self.board.player_turn:
+                self.selected_sprite, self.selected_piece = sprite, piece
+                self.render_selected_piece_moves()
 
     def find_piece_at(self, x, y):
         for sprite in self.piece_sprites:
             # Check to see if the selection overlaps with one of the pieces on the board
             if sprite.x <= x <= sprite.x + sprite.width:
                 if sprite.y <= y <= sprite.y + sprite.height:
-                    piece = self.board.check_square(
-                        rank=(sprite.y - self.board_y) // self.tile_height,
-                        file=(sprite.x - self.board_x) // self.tile_width
-                    )
-                    # Check to make sure we are selecting a piece that is the color of the player whose turn it is
-                    if piece is not None and piece.color == self.board.player_turn:
-                        # Figure out how far to offset the piece sprite from the mouse, so that it aligns with where the player
-                        # originally clicked the piece
-                        x = x - sprite.x
-                        y = y - sprite.y
-                        self.selected_offset = x, y
-                        return sprite, piece
+                    rank, file = self.xy_to_rank_file(sprite.x, sprite.y)
+                    piece = self.board.check_square(rank, file)
+                    # Figure out how far to offset the piece sprite from the mouse, so that it aligns with where the player
+                    # originally clicked the piece
+                    x = x - sprite.x
+                    y = y - sprite.y
+                    self.selected_offset = x, y
+                    return sprite, piece
         return None, None
+
+    def make_legal_move(self, piece, move):
+        legal_moves = piece.get_legal_moves(self.board)
+        if move in legal_moves:
+            self.selected_piece, self.selected_sprite = None, None
+            self.board.move(piece, move)
+            self.update()
+            return True
+        return False
 
     def is_selected(self):
         return True if self.selected_sprite is not None else False
 
     def update_selected(self, x, y):
         self.selected_sprite.update(
-            x=x - self.selected_offset[0],
-            y=y - self.selected_offset[1]
+            x=x-self.selected_offset[0],
+            y=y-self.selected_offset[1]
         )
 
     def reset_selected(self):
         self.selected_offset = 0, 0
-        self.update_selected(
-            x=self.board_x + (self.selected_piece.file * self.tile_width),
-            y=self.board_y + (self.selected_piece.rank * self.tile_height)
-        )
+        x, y = self.rank_file_to_xy(self.selected_piece.rank, self.selected_piece.file)
+        self.update_selected(x, y)
+
+    def xy_to_rank_file(self, x, y):
+        rank = (y - self.board_y) // self.tile_height
+        file = (x - self.board_x) // self.tile_width
+        return rank, file
+
+    def rank_file_to_xy(self, rank, file):
+        x = self.board_x + (file * self.tile_width)
+        y = self.board_y + (rank * self.tile_height)
+        return int(x), int(y)

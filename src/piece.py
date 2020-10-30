@@ -7,6 +7,7 @@ class Piece:
         self.rank, self.file = rank, file
         self.piece_id = piece_id
         self.color = color
+        self.capturable = True
 
     # This function represents the possible squares that a piece can go to, given no obstacles on infinite
     def get_possible_moves(self, board):
@@ -14,9 +15,12 @@ class Piece:
 
     def get_legal_moves(self, board):
         move_list = self.get_possible_moves(board)
+        # For every vector in the list of possible moves, remove every square out of bounds
         for i, vector in enumerate(move_list):
             move_list[i] = self.remove_out_of_bounds(vector)
+        # Remove all the blocked squares from the list
         self.remove_illegal_moves(move_list, board)
+        # Append every move vector into a single list of possible moves
         return sum(move_list, [])
 
     # This function evaluates a list of moves and returns a modified list with only the moves that are within the bounds
@@ -35,14 +39,27 @@ class Piece:
             is_blocked = False
             for (rank, file) in vector.copy():
                 square = board.check_square(rank, file)
+                # If the square was block by one of the previous squares in the vector, remove it from the vector
                 if is_blocked:
                     vector.remove((rank, file))
+                # If the square was filled with a piece
                 elif square is not None:
+                    # If the square is filled with a piece of the same color as the selected piece's color, every piece
+                    # later in the vector will be block
                     if square.color == board.player_turn:
                         vector.remove((rank, file))
                         is_blocked = True
-                    elif square.color != board.player_turn:
-                        is_blocked = True
+                    # Otherwise, if the square has a piece of the opposite color
+                    else:
+                        # If the piece is capturable, keep the square as a possible destination and block the rest of
+                        # the square
+                        if square.capturable:
+                            is_blocked = True
+                        # Otherwise, if the piece is not capturable, remove it from the vector and block the rest of the
+                        # squares in the vector
+                        else:
+                            vector.remove((rank, file))
+                            is_blocked = True
 
     # Move the piece to a new square
     def move(self, rank, file):
@@ -59,26 +76,34 @@ class Pawn(Piece):
         # We need to determine which color the pawn is to determine which way it is moving
         if self.color == src.constants.WHITE:
             # White pawn can move up one square
-            destination_squares.append((self.rank + 1, self.file))
-            # If the pawn is on the 2nd self.rank, it can move 2 squares
-            if self.rank == 1:
-                destination_squares.append((self.rank + 2, self.file))
+            if board.check_square(self.rank + 1, self.file) is None:
+                destination_squares.append((self.rank + 1, self.file))
+                # If the pawn is on the 2nd self.rank, it can move 2 squares
+                if self.rank == 1:
+                    if board.check_square(self.rank + 2, self.file) is None:
+                        destination_squares.append((self.rank + 2, self.file))
             # If there is a black piece to the left or right of the pawn, it can capture
-            if board.check_square(self.rank + 1, self.file + 1) is not None:
+            square = board.check_square(self.rank + 1, self.file + 1)
+            if square is not None and square.capturable and square.color == src.constants.BLACK:
                 destination_squares.append((self.rank + 1, self.file + 1))
-            if board.check_square(self.rank + 1, self.file - 1) is not None:
-                destination_squares.append((self.rank - 1, self.file - 1))
+            square = board.check_square(self.rank + 1, self.file - 1)
+            if square is not None and square.capturable and square.color == src.constants.BLACK:
+                destination_squares.append((self.rank + 1, self.file - 1))
 
         elif self.color == src.constants.BLACK:
             # Black pawn can move down one square
-            destination_squares.append((self.rank - 1, self.file))
-            # If the pawn is on the 2nd self.rank, it can move 2 squares
-            if self.rank == 6:
-                destination_squares.append((self.rank - 2, self.file))
+            if board.check_square(self.rank - 1, self.file) is None:
+                destination_squares.append((self.rank - 1, self.file))
+                # If the pawn is on the 2nd self.rank, it can move 2 squares
+                if self.rank == 6:
+                    if board.check_square(self.rank - 2, self.file) is None:
+                        destination_squares.append((self.rank - 2, self.file))
             # If there is a black piece to the left or right of the pawn, it can capture
-            if board.check_square(self.rank - 1, self.file + 1) is not None:
+            square = board.check_square(self.rank - 1, self.file + 1)
+            if square is not None and square.capturable and square.color == src.constants.WHITE:
                 destination_squares.append((self.rank - 1, self.file + 1))
-            if board.check_square(self.rank - 1, self.file - 1) is not None:
+            square = board.check_square(self.rank - 1, self.file - 1)
+            if square is not None and square.capturable and square.color == src.constants.WHITE:
                 destination_squares.append((self.rank - 1, self.file - 1))
 
         # Before we return the list of pawn moves, check which moves are out of bounds
@@ -107,6 +132,11 @@ class Knight(Piece):
     def get_legal_moves(self, board):
         move_list = self.get_possible_moves(board)
         self.remove_out_of_bounds(move_list)
+        for move in move_list:
+            rank, file = move
+            square = board.check_square(rank, file)
+            if square is not None and square.color == self.color:
+                move_list.remove(move)
         return move_list
 
 class Bishop(Piece):
@@ -164,6 +194,7 @@ class King(Piece):
     def __init__(self, rank, file, color):
         self.piece_id = src.constants.KING
         super(King, self).__init__(rank, file, self.piece_id, color)
+        self.capturable = False
 
     def get_possible_moves(self, board):
         # This list contains all squares of distance 1 away from the king
