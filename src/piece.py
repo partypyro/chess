@@ -8,6 +8,7 @@ class Piece:
         self.piece_id = piece_id
         self.color = color
         self.capturable = True
+        self.can_castle = False
 
     # This function represents the possible squares that a piece can go to, given no obstacles on infinite
     def get_possible_moves(self, board):
@@ -123,21 +124,23 @@ class Knight(Piece):
     # This function returns the valid knight moves from a given square on the board
     def get_possible_moves(self, board):
         # Find all 8 knight moves of +/- 1/2 ranks and +/- 2/1 files
-        destination_squares = [(self.rank + 2, self.file + 1), (self.rank + 2, self.file - 1),
-                     (self.rank - 2, self.file + 1), (self.rank - 2, self.file - 1),
-                     (self.rank - 1, self.file + 2), (self.rank - 1, self.file - 2),
-                     (self.rank + 1, self.file + 2), (self.rank + 1, self.file - 2)]
+        destination_squares = [
+            (self.rank + 2, self.file + 1), (self.rank + 2, self.file - 1),
+            (self.rank - 2, self.file + 1), (self.rank - 2, self.file - 1),
+            (self.rank - 1, self.file + 2), (self.rank - 1, self.file - 2),
+            (self.rank + 1, self.file + 2), (self.rank + 1, self.file - 2)
+        ]
         return destination_squares
 
     def get_legal_moves(self, board):
-        move_list = self.get_possible_moves(board)
-        self.remove_out_of_bounds(move_list)
-        for move in move_list:
+        moves = self.get_possible_moves(board)
+        self.remove_out_of_bounds(moves)
+        for move in moves.copy():
             rank, file = move
             square = board.check_square(rank, file)
             if square is not None and square.color == self.color:
-                move_list.remove(move)
-        return move_list
+                moves.remove(move)
+        return moves
 
 class Bishop(Piece):
     def __init__(self, rank, file, color):
@@ -158,6 +161,7 @@ class Rook(Piece):
     def __init__(self, rank, file, color):
         self.piece_id = src.constants.ROOK
         super(Rook, self).__init__(rank, file, self.piece_id, color)
+        self.can_castle = True
 
     def get_possible_moves(self, board):
         # We find all squares horizontally and vertically aligned with the rook within the width of the board
@@ -195,13 +199,92 @@ class King(Piece):
         self.piece_id = src.constants.KING
         super(King, self).__init__(rank, file, self.piece_id, color)
         self.capturable = False
+        self.can_castle = True
 
     def get_possible_moves(self, board):
         # This list contains all squares of distance 1 away from the king
         destination_squares = [
-             [(self.rank + 1, self.file)], [(self.rank + 1, self.file)],
-             [(self.rank, self.file + 1)], [(self.rank, self.file - 1)],
-             [(self.rank - 1, self.file + 1)], [(self.rank - 1, self.file - 1)],
-             [(self.rank + 1, self.file + 1)], [(self.rank + 1, self.file - 1)]
+             (self.rank + 1, self.file), (self.rank + 1, self.file),
+             (self.rank, self.file + 1), (self.rank, self.file - 1),
+             (self.rank - 1, self.file + 1), (self.rank - 1, self.file - 1),
+             (self.rank + 1, self.file + 1), (self.rank + 1, self.file - 1)
         ]
         return destination_squares
+
+    def get_legal_moves(self, board):
+        moves = self.get_possible_moves(board)
+        # Remove all moves that are out of bounds
+        self.remove_out_of_bounds(moves)
+        # Remove all moves with the pieces of the same color in the destination square
+        for (rank, file) in moves.copy():
+            dest_square = board.check_square(rank, file)
+            if dest_square is not None:
+                if dest_square.color == self.color:
+                    moves.remove((rank, file))
+        if self.can_castle:
+            moves += self.get_castle_moves(board)
+        return moves
+
+    def get_castle_moves(self, board):
+        # Figure out if we can castle - we need to be on the back rank for our color
+        castle_moves = []
+        if self.color == src.constants.WHITE and self.rank == 0:
+            # See which rooks are available for castling
+            l_rook = board.check_square(0, 0)
+            r_rook = board.check_square(0, 7)
+            if l_rook is not None and l_rook.can_castle:
+                print('Left castle')
+                # Check if any pieces are in the way of the left rook
+                squares_to_check = [(0, 1), (0, 2), (0, 3)]
+                is_blocked = False
+                for (rank, file) in squares_to_check:
+                    if board.check_square(rank, file) is not None:
+                        is_blocked = True
+                if not is_blocked:
+                    castle_moves.append((0, 2))
+            if r_rook is not None and r_rook.can_castle:
+                print('Right castle')
+                # Check if any pieces are in the way of the right rook
+                squares_to_check = [(0, 5), (0, 6)]
+                is_blocked = False
+                for (rank, file) in squares_to_check:
+                    if board.check_square(rank, file) is not None:
+                        is_blocked = True
+                if not is_blocked:
+                    castle_moves.append((0, 6))
+        elif self.color == src.constants.BLACK and self.rank == 7:
+            # See which rooks are available for castling
+            l_rook = board.check_square(7, 0)
+            r_rook = board.check_square(7, 7)
+            if l_rook is not None and l_rook.can_castle:
+                # Check if any pieces are in the way of the left rook
+                squares_to_check = [(7, 1), (7, 2), (7, 3)]
+                is_blocked = False
+                for (rank, file) in squares_to_check:
+                    if board.check_square(rank, file) is not None:
+                        is_blocked = True
+                if not is_blocked:
+                    castle_moves.append((7, 2))
+            if r_rook is not None and r_rook.can_castle:
+                # Check if any pieces are in the way of the right rook
+                squares_to_check = [(7, 5), (7, 6)]
+                is_blocked = False
+                for (rank, file) in squares_to_check:
+                    if board.check_square(rank, file) is not None:
+                        is_blocked = True
+                if not is_blocked:
+                    castle_moves.append((7, 6))
+        return castle_moves
+
+    def castle(self, board, move):
+        # Check if left castle or right castle:
+        rank, file = move
+        if (file - self.file) > 0:
+            r_rook = board.check_square(self.rank, self.file + 3)
+            r_rook.file = file - 1
+            self.file = file
+        else:
+            l_rook = board.check_square(self.rank, self.file - 4)
+            l_rook.file = file + 1
+            self.file = file
+

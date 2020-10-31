@@ -12,14 +12,18 @@ class ChessBoard:
 
     def clear_board(self):
         # Add in the major pieces
-        self.pieces = [Rook(0, 0, src.constants.WHITE), Rook(0, 7, src.constants.WHITE),
-                             Knight(0, 1, src.constants.WHITE), Knight(0, 6, src.constants.WHITE),
-                             Bishop(0, 2, src.constants.WHITE), Bishop(0, 5, src.constants.WHITE),
-                             King(0, 3, src.constants.WHITE), Queen(0, 4, src.constants.WHITE),
-                             Rook(7, 0, src.constants.BLACK), Rook(7, 7, src.constants.BLACK),
-                             Knight(7, 1, src.constants.BLACK), Knight(7, 6, src.constants.BLACK),
-                             Bishop(7, 2, src.constants.BLACK), Bishop(7, 5, src.constants.BLACK),
-                             King(7, 3, src.constants.BLACK), Queen(7, 4, src.constants.BLACK)]
+        self.pieces = [
+            # White pieces
+            Rook(0, 0, src.constants.WHITE), Rook(0, 7, src.constants.WHITE),
+            Knight(0, 1, src.constants.WHITE), Knight(0, 6, src.constants.WHITE),
+            Bishop(0, 2, src.constants.WHITE), Bishop(0, 5, src.constants.WHITE),
+            King(0, 4, src.constants.WHITE), Queen(0, 3, src.constants.WHITE),
+            # Black pieces
+            Rook(7, 0, src.constants.BLACK), Rook(7, 7, src.constants.BLACK),
+            Knight(7, 1, src.constants.BLACK), Knight(7, 6, src.constants.BLACK),
+            Bishop(7, 2, src.constants.BLACK), Bishop(7, 5, src.constants.BLACK),
+            King(7, 4, src.constants.BLACK), Queen(7, 3, src.constants.BLACK)
+        ]
         # Add in the pawns
         for i in range(0, 8):
             self.pieces.append(Pawn(1, i, src.constants.WHITE))
@@ -42,5 +46,12 @@ class ChessBoard:
             self.captured_pieces.append(dest_piece)
             self.pieces.remove(dest_piece)
         # Set the piece's new location
-        piece.rank = rank
-        piece.file = file
+        if piece.piece_id == src.constants.KING:
+            if abs(file - piece.file) >= 2:
+                piece.castle(self, move)
+        else:
+            piece.rank = rank
+            piece.file = file
+        # If the piece being moved is a king or a rook, it can no longer castle
+        if piece.piece_id == src.constants.KING or piece.piece_id == src.constants.ROOK:
+            piece.can_castle = False

@@ -83,8 +83,7 @@ class ChessBoardRenderer:
             self.selected_piece_moves_list = []
             # Get all the possible moves of the piece
             legal_moves = self.selected_piece.get_legal_moves(self.board)
-            for move in legal_moves:
-                rank, file = move
+            for (rank, file) in legal_moves:
                 square = self.board.check_square(rank, file)
                 # Center the xy-coords in the center of the tile
                 if square is None:
