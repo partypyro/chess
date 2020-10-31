@@ -236,7 +236,6 @@ class King(Piece):
         self.remove_check_moves(moves, board)
         return moves
 
-    # TODO: Check if final castling square would put king in check
     def get_castle_moves(self, board):
         # Figure out if we can castle - we need to be on the back rank for our color
         castle_moves = []
