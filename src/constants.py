@@ -1,5 +1,6 @@
 import pyglet.image
 
+# Define all the piece and color id #'s
 NONE = 0
 
 PAWN = 1
@@ -13,6 +14,7 @@ WHITE = 1
 BLACK = 0
 image_dict = {}
 
+# Load in the images
 def initialize():
     image_dict[(WHITE, PAWN)] = pyglet.image.load('../assets/white_pawn.png')
     image_dict[(WHITE, KNIGHT)] = pyglet.image.load('../assets/white_knight.png')
@@ -27,6 +29,7 @@ def initialize():
     image_dict[(BLACK, QUEEN)] = pyglet.image.load('../assets/black_queen.png')
     image_dict[(BLACK, KING)] = pyglet.image.load('../assets/black_king.png')
 
+
 def get_image(piece):
-    key = (piece.color, piece.piece_id)
+    key = (piece.color, piece.id)
     return image_dict[key]

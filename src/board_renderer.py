@@ -84,7 +84,7 @@ class ChessBoardRenderer:
             # Get all the possible moves of the piece
             legal_moves = self.selected_piece.get_legal_moves(self.board)
             for (rank, file) in legal_moves:
-                square = self.board.check_square(rank, file)
+                square = self.board.look_at(rank, file)
                 # Center the xy-coords in the center of the tile
                 if square is None:
                     circ = Circle(
@@ -110,6 +110,9 @@ class ChessBoardRenderer:
             self.selected_piece_moves_list = []
             self.selected_piece_moves = pyglet.graphics.Batch()
 
+    def render_checked_king(self):
+        pass
+
     # Based on the xy coords, get the piece/sprite at that location
     def select_piece_at(self, x, y):
         sprite, piece = self.find_piece_at(x, y)
@@ -124,7 +127,7 @@ class ChessBoardRenderer:
             if sprite.x <= x <= sprite.x + sprite.width:
                 if sprite.y <= y <= sprite.y + sprite.height:
                     rank, file = self.xy_to_rank_file(sprite.x, sprite.y)
-                    piece = self.board.check_square(rank, file)
+                    piece = self.board.look_at(rank, file)
                     # Figure out how far to offset the piece sprite from the mouse, so that it aligns with where the player
                     # originally clicked the piece
                     x = x - sprite.x
