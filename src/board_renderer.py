@@ -45,6 +45,7 @@ class ChessBoardRenderer:
         # We don't need to re-render the tiles as they are static
         self.render_pieces()
         self.render_selected_piece_moves()
+        self.render_checked_king()
 
     def render_tiles(self):
         # The colors of each square
@@ -111,7 +112,17 @@ class ChessBoardRenderer:
             self.selected_piece_moves = pyglet.graphics.Batch()
 
     def render_checked_king(self):
-        pass
+        # Find the white king and black king and see if either is in check
+        for king in self.board.pieces:
+            if king.id == src.constants.KING and self.board.is_in_check(king.color):
+                circ = Circle(
+                    x=self.board_x + (king.file * self.tile_width) + (self.tile_width * 0.5),
+                    y=self.board_y + (king.rank * self.tile_height) + (self.tile_height * 0.5),
+                    radius=self.tile_width * .4,
+                    color=(255, 0, 0),
+                    batch=self.selected_piece_moves
+                )
+                self.selected_piece_moves_list.append(circ)
 
     # Based on the xy coords, get the piece/sprite at that location
     def select_piece_at(self, x, y):
@@ -120,6 +131,7 @@ class ChessBoardRenderer:
             if piece.color == self.board.player_turn:
                 self.selected_sprite, self.selected_piece = sprite, piece
                 self.render_selected_piece_moves()
+                self.render_checked_king()
 
     def find_piece_at(self, x, y):
         for sprite in self.piece_sprites:

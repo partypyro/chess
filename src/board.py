@@ -77,6 +77,14 @@ class ChessBoard:
             self.player_turn = not self.player_turn
             return True
 
+    def branch(self, piece, move):
+        branch = copy.deepcopy(self)
+        branch.is_branch = True
+        for future_piece in branch.pieces:
+            if piece.rank == future_piece.rank and piece.file == future_piece.file:
+                    branch.move(future_piece, move)
+        return branch
+
     def is_in_check(self, color):
         king = None
         for piece in self.pieces:
@@ -90,11 +98,3 @@ class ChessBoard:
                     if rank == king.rank and file == king.file:
                         return True
         return False
-
-    def branch(self, piece, move):
-        branch = copy.deepcopy(self)
-        branch.is_branch = True
-        for future_piece in branch.pieces:
-            if piece.rank == future_piece.rank and piece.file == future_piece.file:
-                    branch.move(future_piece, move)
-        return branch

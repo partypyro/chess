@@ -42,7 +42,6 @@ class Piece:
             for move in moves.copy():
                 if board.branch(self, move).is_in_check(self.color):
                     moves.remove(move)
-                    print('Piece ', self, 'checks', self.color, 'because of', move)
 
     # This function evaluates a list of move vectors, or lists of moves, and evaluates if there is a obstacle in the way
     # of that piece continuing its path
