@@ -4,6 +4,8 @@ from pyglet.sprite import Sprite
 
 import src.constants
 from src.board import ChessBoard
+from src.piece import Queen, Rook, Knight, Bishop, King, Pawn
+
 
 class ChessBoardRenderer:
     def __init__(self, x, y, width, height):
@@ -40,11 +42,19 @@ class ChessBoardRenderer:
         self.game_result_message = None
         self.game_result_batch = pyglet.graphics.Batch()
 
+        # Vars to help with pawn promotion
+        self.is_promoting = False
+        self.promotion_menu_pos = (0, 0)
+        self.pawn_promotion = []
+        self.pawn_promotion_batch = pyglet.graphics.Batch()
+
     def draw(self):
         self.tile_batch.draw()
         self.selected_piece_batch.draw()
         self.pieces_batch.draw()
         self.game_result_batch.draw()
+        if self.is_promoting:
+            self.pawn_promotion_batch.draw()
 
     def update(self):
         # We don't need to re-render the tiles as they are static
@@ -53,6 +63,8 @@ class ChessBoardRenderer:
         self.render_checked_king()
         if self.board.is_gameover:
             self.render_gameover_message()
+        if self.is_promoting:
+            self.render_pawn_promotion()
 
     def render_tiles(self):
         # The colors of each square
@@ -168,17 +180,55 @@ class ChessBoardRenderer:
 
     # Render the pawn promotion prompt
     def render_pawn_promotion(self):
-        # TODO: Add an on screen prompt for pawn promotions
-        pass
+        promoted_piece = self.board.get_promoting_piece()
+        if promoted_piece is not None:
+            self.pawn_promotion = []
+            background = pyglet.graphics.OrderedGroup(0)
+            foreground = pyglet.graphics.OrderedGroup(1)
+            rank, file = promoted_piece.rank, promoted_piece.file
+            x, y = self.rank_file_to_xy(rank, file)
+            self.promotion_menu_pos = x, y
+            # Draw the four possible piece promotions at 1/4 the scale of each piece
+            queen_image = src.constants.get_image(Queen(0, 0, promoted_piece.color))
+            queen = Sprite(queen_image, x=x, y=y, batch=self.pawn_promotion_batch, group=foreground)
+            queen.scale = (0.5 * self.tile_width) / queen_image.width
+            self.pawn_promotion.append(queen)
+            rook_image = src.constants.get_image(Rook(0, 0, promoted_piece.color))
+            rook = Sprite(rook_image, x=x + (0.5 * self.tile_width), y=y,
+                          batch=self.pawn_promotion_batch, group=background)
+            rook.scale = (0.5 * self.tile_width) / rook_image.width
+            self.pawn_promotion.append(rook)
+            knight_image = src.constants.get_image(Knight(0, 0, promoted_piece.color))
+            knight = Sprite(knight_image, x=x, y=y + (0.5 * self.tile_width),
+                            batch=self.pawn_promotion_batch, group=foreground)
+            knight.scale = (0.5 * self.tile_width) / knight_image.width
+            self.pawn_promotion.append(knight)
+            bishop_image = src.constants.get_image(Bishop(0, 0, promoted_piece.color))
+            bishop = Sprite(bishop_image, x=x + (0.5 * self.tile_width) , y=y + (0.5 * self.tile_width),
+                            batch=self.pawn_promotion_batch, group=foreground)
+            bishop.scale = (0.5 * self.tile_width) / bishop_image.width
+            self.pawn_promotion.append(bishop)
+            # Draw a grey box on the square as a background for the promotion menu
+            rect = Rectangle(
+                x=x, y=y,
+                width=self.tile_width, height=self.tile_height,
+                color=(127, 127, 127),
+                batch=self.pawn_promotion_batch,
+                group=background
+            )
+            self.pawn_promotion.append(rect)
 
     # Based on the xy coords, get the piece/sprite at that location
     def select_piece_at(self, x, y):
         sprite, piece = self.find_piece_at(x, y)
-        if piece is not None and not self.board.is_gameover:
+        if piece is not None and not self.board.is_gameover and not self.is_promoting:
             if piece.color == self.board.player_turn:
                 self.selected_sprite, self.selected_piece = sprite, piece
                 self.render_selected_piece_moves()
                 self.render_checked_king()
+        elif self.is_promoting:
+            self.get_promotion_selection(x, y)
+            self.update()
 
     def find_piece_at(self, x, y):
         for sprite in self.piece_sprites:
@@ -195,6 +245,27 @@ class ChessBoardRenderer:
                     return sprite, piece
         return None, None
 
+    def get_promotion_selection(self, x, y):
+        menu_x, menu_y = self.promotion_menu_pos
+        piece = self.board.get_promoting_piece()
+        selection = None
+        if menu_x <= x <= menu_x + (self.tile_width * 0.5):
+            if menu_y <= y <= menu_y + (self.tile_width * 0.5):
+                selection = Queen
+        if menu_x + (self.tile_width * 0.5) <= x <= menu_x + self.tile_width:
+            if menu_y <= y <= menu_y + (self.tile_width * 0.5):
+                selection = Rook
+        if menu_x <= x <= menu_x + (self.tile_width * 0.5):
+            if menu_y + (self.tile_width * 0.5) <= y <= menu_y + self.tile_width:
+                selection = Knight
+        if menu_x + (self.tile_width * 0.5) <= x <= menu_x + self.tile_width:
+            if menu_y + (self.tile_width * 0.5) <= y <= menu_y + self.tile_width:
+                selection = Bishop
+        if selection is not None:
+            self.board.promote_pawn(piece, selection)
+            self.is_promoting = False
+            self.pawn_promotion = []
+
     def make_legal_move(self, piece, move):
         # TODO: Move most of logic to actual board class
         legal_moves = piece.get_legal_moves(self.board)
@@ -202,6 +273,10 @@ class ChessBoardRenderer:
             self.selected_piece, self.selected_sprite = None, None
             success = self.board.move(piece, move)
             self.update()
+            # Check if a pawn promotion is available after the move is made
+            if self.board.can_promote():
+                self.is_promoting = True
+                self.render_pawn_promotion()
             return success
         return False
 

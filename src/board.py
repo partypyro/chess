@@ -139,6 +139,28 @@ class ChessBoard:
         # TODO: Check for insufficient material draw
         # TODO: Check for 3-fold repetition draw
 
-    def promote_pawn(self):
-        #TODO: Add pawn promotion features
-        pass
+    def can_promote(self):
+        for piece in self.pieces:
+            if piece.id == src.constants.PAWN:
+                if piece.color == src.constants.WHITE and piece.rank == 7:
+                    return True
+                elif piece.color == src.constants.BLACK and piece.rank == 0:
+                    return True
+        return False
+
+    def get_promoting_piece(self):
+        for piece in self.pieces:
+            if piece.id == src.constants.PAWN:
+                if piece.color == src.constants.WHITE and piece.rank == 7:
+                    return piece
+                elif piece.color == src.constants.BLACK and piece.rank == 0:
+                    return piece
+        return None
+
+    def promote_pawn(self, piece, promotion_type):
+        if piece.id == src.constants.PAWN:
+            for promoter in self.pieces:
+                if promoter.rank == piece.rank and promoter.file == piece.file:
+                    self.pieces.remove(promoter)
+            self.pieces.append(promotion_type(piece.rank, piece.file, piece.color))
+
