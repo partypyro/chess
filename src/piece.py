@@ -91,10 +91,10 @@ class Pawn(Piece):
                         destination_squares.append((self.rank + 2, self.file))
             # If there is a black piece to the left or right of the pawn, it can capture
             square = board.look_at(self.rank + 1, self.file + 1)
-            if square is not None and square.capturable and square.color == src.constants.BLACK:
+            if square is not None and square.color == src.constants.BLACK:
                 destination_squares.append((self.rank + 1, self.file + 1))
             square = board.look_at(self.rank + 1, self.file - 1)
-            if square is not None and square.capturable and square.color == src.constants.BLACK:
+            if square is not None and square.color == src.constants.BLACK:
                 destination_squares.append((self.rank + 1, self.file - 1))
 
         elif self.color == src.constants.BLACK:
@@ -107,10 +107,10 @@ class Pawn(Piece):
                         destination_squares.append((self.rank - 2, self.file))
             # If there is a black piece to the left or right of the pawn, it can capture
             square = board.look_at(self.rank - 1, self.file + 1)
-            if square is not None and square.capturable and square.color == src.constants.WHITE:
+            if square is not None and square.color == src.constants.WHITE:
                 destination_squares.append((self.rank - 1, self.file + 1))
             square = board.look_at(self.rank - 1, self.file - 1)
-            if square is not None and square.capturable and square.color == src.constants.WHITE:
+            if square is not None and square.color == src.constants.WHITE:
                 destination_squares.append((self.rank - 1, self.file - 1))
 
         # Before we return the list of pawn moves, check which moves are out of bounds

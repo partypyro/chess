@@ -46,6 +46,7 @@ class ChessBoard:
     # This function takes a piece and move to be made for that piece. If the function is able to make the move, it
     # return true, otherwise false.
     def move(self, piece, move):
+        # TODO: Create a list of moves and add each move to the list as they are made
         # Unpack the move and see what piece is in the destination square
         rank, file = move
         dest_piece = self.look_at(rank, file)
@@ -65,7 +66,7 @@ class ChessBoard:
             piece.can_castle = False
             # Swap the turn variable to the opposite player
             self.player_turn = not self.player_turn
-            self.is_checkmated(self.player_turn)
+            self.check_gameover()
             return True
         success = False
         if dest_piece is not None:
@@ -85,7 +86,7 @@ class ChessBoard:
             piece.can_castle = False
             # Swap the turn variable to the opposite player
             self.player_turn = not self.player_turn
-            self.is_checkmated(self.player_turn)
+            self.check_gameover()
             return True
         return False
 
@@ -112,15 +113,32 @@ class ChessBoard:
                         return True
         return False
 
-    # This function returns true if the king of the specified color is checkmated. Otherwise, false.
-    def is_checkmated(self, color):
-        moves = []
-        if self.is_in_check(color):
-            for piece in self.pieces:
-                if piece.color == color:
-                    moves += piece.get_legal_moves(self)
-            if len(moves) == 0:
+    # This function checks if the game is over and stores the result in self.game_result
+    def check_gameover(self):
+        # Check if the player is in check and if they have any legal moves
+        legal_moves = []
+        is_checked = self.is_in_check(self.player_turn)
+        piece_count = {}
+        for piece in self.pieces:
+            piece_count.setdefault(piece.id, 0)
+            piece_count[piece.id] = piece_count[piece.id] + 1
+            if piece.color == self.player_turn:
+                legal_moves += piece.get_legal_moves(self)
+        if len(legal_moves) == 0:
+            if is_checked:
+                if self.player_turn == src.constants.WHITE:
+                    self.is_gameover = True
+                    self.game_result = 'BLACK'
+                elif self.player_turn == src.constants.BLACK:
+                    self.is_gameover = True
+                    self.game_result = 'WHITE'
+            else:
                 self.is_gameover = True
-                self.game_result = not color
-                return True
-        return False
+                self.game_result = 'DRAW'
+        # Check if there is sufficient material for checkmate
+        # TODO: Check for insufficient material draw
+        # TODO: Check for 3-fold repetition draw
+
+    def promote_pawn(self):
+        #TODO: Add pawn promotion features
+        pass

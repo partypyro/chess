@@ -133,7 +133,7 @@ class ChessBoardRenderer:
 
     def render_gameover_message(self):
         if self.board.is_gameover:
-            if self.board.game_result == src.constants.WHITE:
+            if self.board.game_result == 'WHITE':
                 self.game_result_message = pyglet.text.Label(
                     'WHITE WINS',
                     font_name='Times New Roman',
@@ -143,7 +143,7 @@ class ChessBoardRenderer:
                     anchor_x='center', anchor_y='center',
                     batch=self.game_result_batch
                 )
-            elif self.board.game_result == src.constants.BLACK:
+            elif self.board.game_result == 'BLACK':
                 self.game_result_message = pyglet.text.Label(
                     'BLACK WINS',
                     font_name='Times New Roman',
@@ -154,6 +154,22 @@ class ChessBoardRenderer:
                     batch=self.game_result_batch,
                     color=(0,0,0,255)
                 )
+            elif self.board.game_result == 'DRAW':
+                self.game_result_message = pyglet.text.Label(
+                    'DRAW',
+                    font_name='Times New Roman',
+                    font_size=src.constants.WINNER_TEXT_SIZE,
+                    x=self.board_x + (self.board_width // 2),
+                    y=self.board_y + (self.board_height // 2),
+                    anchor_x='center', anchor_y='center',
+                    batch=self.game_result_batch,
+                    color=(127,127,127,255)
+                )
+
+    # Render the pawn promotion prompt
+    def render_pawn_promotion(self):
+        # TODO: Add an on screen prompt for pawn promotions
+        pass
 
     # Based on the xy coords, get the piece/sprite at that location
     def select_piece_at(self, x, y):
