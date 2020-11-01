@@ -196,6 +196,7 @@ class ChessBoardRenderer:
         return None, None
 
     def make_legal_move(self, piece, move):
+        # TODO: Move most of logic to actual board class
         legal_moves = piece.get_legal_moves(self.board)
         if move in legal_moves:
             self.selected_piece, self.selected_sprite = None, None

@@ -39,5 +39,7 @@ class Renderer(pyglet.window.Window):
     def on_mouse_release(self, x, y, button, modifiers):
         # Drop the piece back the original position
         if self.chess_board.is_selected():
-            self.chess_board.reset_selected()
-            # TODO: Implement drag and drop piece movement
+            self.chess_board.update_selected(x, y)
+            move = self.chess_board.xy_to_rank_file(x, y)
+            if not self.chess_board.make_legal_move(self.chess_board.selected_piece, move):
+                self.chess_board.reset_selected()
