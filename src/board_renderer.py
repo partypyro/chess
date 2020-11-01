@@ -30,22 +30,29 @@ class ChessBoardRenderer:
         self.render_pieces()
 
         # Vars to help with which piece is selected on the screen
-        self.selected_piece_moves = pyglet.graphics.Batch()
-        self.selected_piece_moves_list = []
+        self.selected_piece_batch = pyglet.graphics.Batch()
+        self.selected_piece_moves = []
         self.selected_offset = 0, 0
         self.selected_sprite = None
         self.selected_piece = None
 
+        # Vars to help with displaying game result
+        self.game_result_message = None
+        self.game_result_batch = pyglet.graphics.Batch()
+
     def draw(self):
         self.tile_batch.draw()
-        self.selected_piece_moves.draw()
+        self.selected_piece_batch.draw()
         self.pieces_batch.draw()
+        self.game_result_batch.draw()
 
     def update(self):
         # We don't need to re-render the tiles as they are static
         self.render_pieces()
         self.render_selected_piece_moves()
         self.render_checked_king()
+        if self.board.is_gameover:
+            self.render_gameover_message()
 
     def render_tiles(self):
         # The colors of each square
@@ -81,7 +88,7 @@ class ChessBoardRenderer:
     def render_selected_piece_moves(self):
         if self.selected_sprite is not None:
             # Clear the list of possible move markers
-            self.selected_piece_moves_list = []
+            self.selected_piece_moves = []
             # Get all the possible moves of the piece
             legal_moves = self.selected_piece.get_legal_moves(self.board)
             for (rank, file) in legal_moves:
@@ -93,9 +100,9 @@ class ChessBoardRenderer:
                         y=self.board_y + (rank * self.tile_height) + (self.tile_height * 0.5),
                         radius=self.tile_width * .25,
                         color=(100,100,100),
-                        batch=self.selected_piece_moves
+                        batch=self.selected_piece_batch
                     )
-                    self.selected_piece_moves_list.append(circ)
+                    self.selected_piece_moves.append(circ)
                 # If there is an enemy piece on the square we can move to, draw a red circle
                 elif square is not None:
                     if square.color is not self.board.player_turn:
@@ -104,12 +111,12 @@ class ChessBoardRenderer:
                             y=self.board_y + (rank * self.tile_height) + (self.tile_height * 0.5),
                             radius=self.tile_width * .4,
                             color=(255, 0, 0),
-                            batch=self.selected_piece_moves
+                            batch=self.selected_piece_batch
                         )
-                        self.selected_piece_moves_list.append(circ)
+                        self.selected_piece_moves.append(circ)
         else:
-            self.selected_piece_moves_list = []
-            self.selected_piece_moves = pyglet.graphics.Batch()
+            self.selected_piece_moves = []
+            self.selected_piece_batch = pyglet.graphics.Batch()
 
     def render_checked_king(self):
         # Find the white king and black king and see if either is in check
@@ -120,14 +127,38 @@ class ChessBoardRenderer:
                     y=self.board_y + (king.rank * self.tile_height) + (self.tile_height * 0.5),
                     radius=self.tile_width * .4,
                     color=(255, 0, 0),
-                    batch=self.selected_piece_moves
+                    batch=self.selected_piece_batch
                 )
-                self.selected_piece_moves_list.append(circ)
+                self.selected_piece_moves.append(circ)
+
+    def render_gameover_message(self):
+        if self.board.is_gameover:
+            if self.board.game_result == src.constants.WHITE:
+                self.game_result_message = pyglet.text.Label(
+                    'WHITE WINS',
+                    font_name='Times New Roman',
+                    font_size=src.constants.WINNER_TEXT_SIZE,
+                    x=self.board_x + (self.board_width // 2),
+                    y=self.board_y + (self.board_height // 2),
+                    anchor_x='center', anchor_y='center',
+                    batch=self.game_result_batch
+                )
+            elif self.board.game_result == src.constants.BLACK:
+                self.game_result_message = pyglet.text.Label(
+                    'BLACK WINS',
+                    font_name='Times New Roman',
+                    font_size=src.constants.WINNER_TEXT_SIZE,
+                    x=self.board_x + (self.board_width // 2),
+                    y=self.board_y + (self.board_height // 2),
+                    anchor_x='center', anchor_y='center',
+                    batch=self.game_result_batch,
+                    color=(0,0,0,255)
+                )
 
     # Based on the xy coords, get the piece/sprite at that location
     def select_piece_at(self, x, y):
         sprite, piece = self.find_piece_at(x, y)
-        if piece is not None:
+        if piece is not None and not self.board.is_gameover:
             if piece.color == self.board.player_turn:
                 self.selected_sprite, self.selected_piece = sprite, piece
                 self.render_selected_piece_moves()
@@ -152,9 +183,9 @@ class ChessBoardRenderer:
         legal_moves = piece.get_legal_moves(self.board)
         if move in legal_moves:
             self.selected_piece, self.selected_sprite = None, None
-            self.board.move(piece, move)
+            success = self.board.move(piece, move)
             self.update()
-            return True
+            return success
         return False
 
     def is_selected(self):

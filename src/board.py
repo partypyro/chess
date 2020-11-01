@@ -10,11 +10,14 @@ class ChessBoard:
         self.pieces = []
         self.captured_pieces = []
         self.is_branch = False
+        self.is_gameover = False
+        self.game_result = None
         if pieces is not None:
             self.pieces = pieces
         else:
             self.clear_board()
 
+    # Set the pieces on the board to the default position
     def clear_board(self):
         # Add in the major pieces
         self.pieces = [
@@ -40,42 +43,51 @@ class ChessBoard:
             if piece.rank == rank and piece.file == file:
                 return piece
 
+    # This function takes a piece and move to be made for that piece. If the function is able to make the move, it
+    # return true, otherwise false.
     def move(self, piece, move):
-        # If we are in check, the move we make has to get us out of check
-
-        # Swap the turn variable to the opposite player
         # Unpack the move and see what piece is in the destination square
         rank, file = move
         dest_piece = self.look_at(rank, file)
-        # If there is a piece in the destination square, remove the piece and add it to the list of captured pieces
-        # See if the piece
-        if piece.id == src.constants.KING:
-            # If the king is moving more than two squares, it is a castling move
-            if abs(file - piece.file) >= 2:
-                piece.castle(self, move)
-                self.player_turn = not self.player_turn
-                return True
-            else:
-                # Set the king's new location
-                piece.rank = rank
+        # If the king is moving more than two squares, it is a castling move
+        if piece.id == src.constants.KING and abs(file - piece.file) >= 2 and piece.can_castle:
+            # Check if left castle or right castle:
+            if (file - piece.file) > 0:
+                r_rook = self.look_at(piece.rank, piece.file + 3)
+                r_rook.file = file - 1
                 piece.file = file
-                self.player_turn = not self.player_turn
-                return True
+                r_rook.can_castle = False
+            else:
+                l_rook = self.look_at(piece.rank, piece.file - 4)
+                l_rook.file = file + 1
+                piece.file = file
+                l_rook.can_castle = False
+            piece.can_castle = False
+            # Swap the turn variable to the opposite player
+            self.player_turn = not self.player_turn
+            self.is_checkmated(self.player_turn)
+            return True
+        success = False
+        if dest_piece is not None:
+            if dest_piece.capturable:
+                self.captured_pieces.append(dest_piece)
+                self.pieces.remove(dest_piece)
+                success = True
+            else:
+                success = False
         else:
-            if dest_piece is not None:
-                if dest_piece.capturable:
-                    self.captured_pieces.append(dest_piece)
-                    self.pieces.remove(dest_piece)
-                else:
-                    return False
-            # Set the piece's new location
+            success = True
+        if success:
+            # Move the piece to the destination square
             piece.rank = rank
             piece.file = file
-            # If the piece being moved is a rook, it can no longer castle
-            if piece.id == src.constants.ROOK:
-                piece.can_castle = False
+            # If the piece is a rook or king and it moves, it can no longer castle
+            piece.can_castle = False
+            # Swap the turn variable to the opposite player
             self.player_turn = not self.player_turn
+            self.is_checkmated(self.player_turn)
             return True
+        return False
 
     def branch(self, piece, move):
         branch = copy.deepcopy(self)
@@ -85,6 +97,7 @@ class ChessBoard:
                     branch.move(future_piece, move)
         return branch
 
+    # This function returns true if the king of the specified color is in check. Otherwise, false.
     def is_in_check(self, color):
         king = None
         for piece in self.pieces:
@@ -97,4 +110,17 @@ class ChessBoard:
                 for (rank, file) in attacks:
                     if rank == king.rank and file == king.file:
                         return True
+        return False
+
+    # This function returns true if the king of the specified color is checkmated. Otherwise, false.
+    def is_checkmated(self, color):
+        moves = []
+        if self.is_in_check(color):
+            for piece in self.pieces:
+                if piece.color == color:
+                    moves += piece.get_legal_moves(self)
+            if len(moves) == 0:
+                self.is_gameover = True
+                self.game_result = not color
+                return True
         return False

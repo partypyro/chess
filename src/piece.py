@@ -14,6 +14,7 @@ class Piece:
     def get_possible_moves(self, board):
         return []
 
+    # This function returns the set of all legal moves from the set of all possible moves
     def get_legal_moves(self, board):
         moves = self.get_possible_moves(board)
         # For every vector in the list of possible moves, remove every square out of bounds
@@ -31,11 +32,12 @@ class Piece:
     # This function evaluates a list of moves and returns a modified list with only the moves that are within the bounds
     # of the board
     def remove_out_of_bounds(self, square_list):
-        for (rank, file) in square_list:
+        for (rank, file) in square_list.copy():
             if rank < 0 or rank > 7 or file < 0 or file > 7:
                 square_list.remove((rank, file))
         return square_list
 
+    # This function removes any moves from a list of moves that would put the player's king in check
     def remove_check_moves(self, moves, board):
         if not board.is_branch:
             # Simulate the move and see if it puts the king in check
@@ -238,6 +240,8 @@ class King(Piece):
     def get_castle_moves(self, board):
         # Figure out if we can castle - we need to be on the back rank for our color
         castle_moves = []
+        if not self.can_castle:
+            return castle_moves
         if self.color == src.constants.WHITE and self.rank == 0:
             # See which rooks are available for castling
             l_rook = board.look_at(0, 0)
@@ -283,15 +287,3 @@ class King(Piece):
                 if not is_blocked:
                     castle_moves.append((7, 6))
         return castle_moves
-
-    def castle(self, board, move):
-        # Check if left castle or right castle:
-        rank, file = move
-        if (file - self.file) > 0:
-            r_rook = board.look_at(self.rank, self.file + 3)
-            r_rook.file = file - 1
-            self.file = file
-        else:
-            l_rook = board.look_at(self.rank, self.file - 4)
-            l_rook.file = file + 1
-            self.file = file

@@ -12,7 +12,12 @@ KING = 6
 
 WHITE = 1
 BLACK = 0
+
+# Images for pieces
 image_dict = {}
+
+# Game message settings
+WINNER_TEXT_SIZE = 72
 
 # Load in the images
 def initialize():
@@ -28,7 +33,6 @@ def initialize():
     image_dict[(BLACK, ROOK)] = pyglet.image.load('../assets/black_rook.png')
     image_dict[(BLACK, QUEEN)] = pyglet.image.load('../assets/black_queen.png')
     image_dict[(BLACK, KING)] = pyglet.image.load('../assets/black_king.png')
-
 
 def get_image(piece):
     key = (piece.color, piece.id)

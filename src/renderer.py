@@ -40,4 +40,4 @@ class Renderer(pyglet.window.Window):
         # Drop the piece back the original position
         if self.chess_board.is_selected():
             self.chess_board.reset_selected()
-            # TODO: Implement drag on drop piece movement
+            # TODO: Implement drag and drop piece movement
