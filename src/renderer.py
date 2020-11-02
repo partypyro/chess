@@ -41,5 +41,7 @@ class Renderer(pyglet.window.Window):
         if self.chess_board.is_selected():
             self.chess_board.update_selected(x, y)
             move = self.chess_board.xy_to_rank_file(x, y)
-            if not self.chess_board.make_legal_move(self.chess_board.selected_piece, move):
+            move_success = self.chess_board.make_legal_move(self.chess_board.selected_piece, move)
+            if not move_success:
                 self.chess_board.reset_selected()
+                self.chess_board.update()

@@ -43,7 +43,6 @@ class ChessBoardRenderer:
         self.game_result_batch = pyglet.graphics.Batch()
 
         # Vars to help with pawn promotion
-        self.is_promoting = False
         self.promotion_menu_pos = (0, 0)
         self.pawn_promotion = []
         self.pawn_promotion_batch = pyglet.graphics.Batch()
@@ -53,7 +52,7 @@ class ChessBoardRenderer:
         self.selected_piece_batch.draw()
         self.pieces_batch.draw()
         self.game_result_batch.draw()
-        if self.is_promoting:
+        if self.board.is_promoting:
             self.pawn_promotion_batch.draw()
 
     def update(self):
@@ -63,14 +62,14 @@ class ChessBoardRenderer:
         self.render_checked_king()
         if self.board.is_gameover:
             self.render_gameover_message()
-        if self.is_promoting:
+        if self.board.is_promoting:
             self.render_pawn_promotion()
 
     def render_tiles(self):
         # The colors of each square
         light_square = (0, 122, 4)
         dark_square = (128, 255, 132)
-        alternating_count = 0
+        alternating_count = 1
         # Create a 2D array of rectangles to represent the squares on the board
         for rank in range(9):
             for file in range(9):
@@ -195,7 +194,7 @@ class ChessBoardRenderer:
             self.pawn_promotion.append(queen)
             rook_image = src.constants.get_image(Rook(0, 0, promoted_piece.color))
             rook = Sprite(rook_image, x=x + (0.5 * self.tile_width), y=y,
-                          batch=self.pawn_promotion_batch, group=background)
+                          batch=self.pawn_promotion_batch, group=foreground)
             rook.scale = (0.5 * self.tile_width) / rook_image.width
             self.pawn_promotion.append(rook)
             knight_image = src.constants.get_image(Knight(0, 0, promoted_piece.color))
@@ -221,12 +220,12 @@ class ChessBoardRenderer:
     # Based on the xy coords, get the piece/sprite at that location
     def select_piece_at(self, x, y):
         sprite, piece = self.find_piece_at(x, y)
-        if piece is not None and not self.board.is_gameover and not self.is_promoting:
+        if piece is not None and not self.board.is_gameover and not self.board.is_promoting:
             if piece.color == self.board.player_turn:
                 self.selected_sprite, self.selected_piece = sprite, piece
                 self.render_selected_piece_moves()
                 self.render_checked_king()
-        elif self.is_promoting:
+        elif self.board.is_promoting:
             self.get_promotion_selection(x, y)
             self.update()
 
@@ -263,22 +262,14 @@ class ChessBoardRenderer:
                 selection = Bishop
         if selection is not None:
             self.board.promote_pawn(piece, selection)
-            self.is_promoting = False
+            self.board.is_promoting = False
             self.pawn_promotion = []
 
     def make_legal_move(self, piece, move):
-        # TODO: Move most of logic to actual board class
-        legal_moves = piece.get_legal_moves(self.board)
-        if move in legal_moves:
+        success = self.board.move(piece, move)
+        if success:
             self.selected_piece, self.selected_sprite = None, None
-            success = self.board.move(piece, move)
             self.update()
-            # Check if a pawn promotion is available after the move is made
-            if self.board.can_promote():
-                self.is_promoting = True
-                self.render_pawn_promotion()
-            return success
-        return False
 
     def is_selected(self):
         return True if self.selected_sprite is not None else False
@@ -290,9 +281,10 @@ class ChessBoardRenderer:
         )
 
     def reset_selected(self):
-        self.selected_offset = 0, 0
-        x, y = self.rank_file_to_xy(self.selected_piece.rank, self.selected_piece.file)
-        self.update_selected(x, y)
+        if self.selected_piece is not None:
+            self.selected_offset = 0, 0
+            x, y = self.rank_file_to_xy(self.selected_piece.rank, self.selected_piece.file)
+            self.update_selected(x, y)
 
     def xy_to_rank_file(self, x, y):
         rank = (y - self.board_y) // self.tile_height

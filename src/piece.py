@@ -112,8 +112,8 @@ class Pawn(Piece):
             square = board.look_at(self.rank - 1, self.file - 1)
             if square is not None and square.color == src.constants.WHITE:
                 destination_squares.append((self.rank - 1, self.file - 1))
-
         # Before we return the list of pawn moves, check which moves are out of bounds
+        destination_squares += self.get_en_passant_moves(board)
         destination_squares = self.remove_out_of_bounds(destination_squares)
         return destination_squares
 
@@ -123,6 +123,27 @@ class Pawn(Piece):
         # Remove any moves that would put us in check
         self.remove_check_moves(moves, board)
         return moves
+
+    # TODO: implement en passant moves
+    def get_en_passant_moves(self, board):
+        en_passant_moves = []
+        if len(board.move_list) >= 1:
+            last_piece, start, end = board.move_list[-1]
+            # The last piece that moved needs to be a pawn - en passant is only available for one move - and needs to be
+            # the opposite color
+            if last_piece.id == src.constants.PAWN and last_piece.color == self.color:
+                start_rank, start_file = start
+                end_rank, end_file = end
+                # The pawn needs to have moved two ranks and the pawn we are moving needs to be on the same rank
+                if abs(end_rank - start_rank) >= 2 and self.rank == end_rank:
+                    # The direction of the capture depends on the color of the pawn
+                    if self.color == src.constants.WHITE:
+                        en_passant_moves.append((self.rank + 1, end_file))
+                    elif self.color == src.constants.BLACK:
+                        en_passant_moves.append((self.rank - 1, end_file))
+                    print(en_passant_moves)
+                    return en_passant_moves
+        return en_passant_moves
 
 class Knight(Piece):
     def __init__(self, rank, file, color):
@@ -242,7 +263,7 @@ class King(Piece):
         castle_moves = []
         if not self.can_castle:
             return castle_moves
-        if self.color == src.constants.WHITE and self.rank == 0:
+        if self.color == src.constants.WHITE and self.rank == 0 and not board.is_in_check():
             # See which rooks are available for castling
             l_rook = board.look_at(0, 0)
             r_rook = board.look_at(0, 7)
